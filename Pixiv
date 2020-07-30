@@ -1,0 +1,214 @@
+// ==UserScript== // @name Pixiv(P站)热门作品推荐功能 // @name:ja Pixiv 擬似コレクション検索 // @name:zh-Tw Pixiv(P站)熱門作品推薦功能 // @namespace http://tampermonkey.net/ // @version 3.03 // @require https://code.jquery.com/jquery-1.12.4.min.js // @icon http://www.pixiv.net/favicon.ico // @description 此插件用于移除跳转模块，让非会员用户直接点击热门推荐图片链接;UID和PID搜索功能及模拟按收藏人数搜索功能 // @description:en Non-members click directly on popular images; UID and PID search and simulation search by favorites // @description:ja 非会員が直接ヒットしているおすすめ画像をクリック;UIDとPID検索機能とシミュレーションコレクション人数による検索機能 // @description:zh-TW 此外掛用於移除跳轉模組，讓非會員使用者直接點選熱門推薦圖片連結;UID和PID搜尋功能及模擬按收藏人數搜尋功能
+// @author Nears // @include ://www.pixiv.net/tags/ // @match https://www.pixiv.net/ // @grant none // ==/UserScript==
+
+var styleP = document.createElement('style'); document.body.appendChild(styleP); styleP.textContent = ''+ '.searchID{'+ 'display:none;'+ 'width: 500px;'+ 'left: -350px;'+ 'margin-left: 50%;'+ 'background: #fff;'+ 'top: 3%;'+ 'color: #333;'+ 'padding: 25px;'+ 'border-radius: 15px;'+ 'border: 1px solid #ddd;'+ 'box-shadow: 0 0 25px #a88a81;'+ 'max-height: calc(94% - 50px);'+ 'overflow: auto;'+ 'position: fixed;'+ 'z-index: 1000;'+ 'font-size: 14px;}'+ '.searchID p {'+ 'line-height: 35px;'+ 'text-align:center;'+ 'margin: 0;}'+ '.searchID p label{'+ 'font-size:20px;'+ 'cursor: pointer;'+ 'margin-right: 12px;}'+ 'input[type="text"]{'+ 'height: 20px;'+ 'margin: 0;'+ 'padding: 0 4px;}'+ '.searchID p input{'+ 'width: 50px;'+ 'min-width: 200px;'+ 'line-height: 20px;'+ 'font-size: 14px!important;'+ 'height: 20px;'+ 'text-indent: 4px;'+ 'box-sizing: border-box;'+ 'border: none!important;'+ 'border-bottom: 1px solid #a3b9c2!important;'+ 'outline: 0;}'+ '.sClose{'+ 'font-size: 18px;'+ 'font-family: initial;'+ 'position: absolute;'+ 'top: 0;'+ 'right: 0;'+ 'width: 40px;'+ 'height: 40px;'+ 'text-align: center;'+ 'cursor: pointer;'+ 'color: #666;'+ 'user-select: none;}'+ '.sButton{'+ 'float:right;'+ 'color:white;'+ 'background-color: rgb(14, 168, 239);'+ 'padding: 6px 8px;'+ 'text-align: center;'+ 'min-height: 20px;'+ 'line-height: 20px;'+ 'border-radius: 4px;'+ 'margin-right: 30px;'+ 'cursor: pointer;'+ 'max-width:30px;'+ 'vertical-align: top;}'+ '.sDivBody{'+ 'margin-left: 80px;'+ 'width:338px;}'+ '.pDivC{'+ 'float:left;}'+ '.clearF{ '+ 'clear:both}'+ 'aside ul:after{content: none!important}aside{width:50%}'+ '.aline:before {content: "";height: 14px;vertical-align: -2px;padding-left: 4px;margin-left: 4px;border-left: 1px solid #eee;}'+ '.byPopur{height:37px;width:390px}';
+
+var bm_Rang = [" 10000users入り"," 5000users入り"," 1000users入り"," 500users入り"," 300users入り"," 100users入り"," 50users入り"]; var bm_val = 7; function appendPUID(element){ $(''+ '搜作者'+ ''+ '搜作品').appendTo(element); var searchType = 0;
+
+$("<div class='searchID'><div class='sClose'>x</div><div class='sDivBody'><div class='pDivC'><p><label class='typeClass'></label><input id='UPID' type='text'/></p></div><div class='sButton'>搜索</div></div><div class='clearF'></div></div>").appendTo($('body'))
+
+$(".sClose").click(function(){
+    $('.searchID').hide()
+})
+
+$(".searchByUID").click(function(){
+    searchType = 1;
+    $('.typeClass').text('UID:')
+    $('.searchID').show()
+    $("#UPID").val('');
+    $("#UPID").focus();
+})
+
+
+$(".searchByPID").click(function(){
+    searchType = 2;
+    $('.typeClass').text('PID:')
+    $('.searchID').show()
+    $("#UPID").val('');
+    $("#UPID").focus();
+})
+
+$("#UPID").on('keyup',function(eve){
+    eve.target.value =  eve.target.value.toString().replace(/[^\d]/g,"");
+})
+
+$(".sButton").click(function(){
+
+    if($("#UPID").val() == ""){
+        alert("Pid or uid is null!");
+        return false;
+    }
+
+    if(searchType == 1){
+        window.open("https://www.pixiv.net/member.php?id="+$("#UPID").val());
+    }else{
+        window.open('https://www.pixiv.net/member_illust.php?mode=medium&illust_id='+$("#UPID").val());
+    }
+})
+}
+
+function reLoad(){ let urlParm = document.URL.split("/"); urlParm[1] = "//" urlParm[2] = urlParm[2] + "/" urlParm[3] = urlParm[3] + "/" urlParm[4]= urlParm[4].replace(/%+\s*\d+users%E5%85%A5%E3%82%8A/ig,"") urlParm[4] = $("input[name='word']").val() + "/" location.href = urlParm.join("") }
+
+function appendSearch(){ let checkFNum = 0; let checkForm = setInterval(function(){ checkFNum = checkFNum + 1; if($("[role='presentation']") && $("[role='presentation']").length >0){ clearInterval(checkForm) let presentForm = $("[role='presentation']")[0].childNodes[0].childNodes[0] let formDiv = presentForm.childNodes[0].childNodes[1] formDiv.childNodes[4].style.display = 'none' $(formDiv.childNodes[4]).after($("
+
+按收藏人数搜索
+"))
+     let formInput = formDiv.childNodes[0].childNodes[1].childNodes[1];
+      let wordVal = $(formInput).val().replace(/\s*\d+users入り/ig,"")
+        $(formInput).val(wordVal)
+         $(formInput).focus(function(){
+            setTimeout(function(){
+              let vD= $(this).val().replace(/\s*\d+users入り/ig,"")
+              $(this).val(vD)
+            })
+
+         })
+
+           $(formInput).blur(function(){
+            setTimeout(function(){
+              let vD= $(this).val().replace(/\s*\d+users入り/ig,"")
+              $(this).val(vD)
+            })
+
+         })
+     for(var i = 6;i >= 0;i--){
+         var option = $("<option>").val(i).text(bm_Rang[i].replace(/\s/ig,""));
+         $(".byPopur").append(option);
+     }
+     let subB = presentForm.childNodes[0].childNodes[2].childNodes[0].childNodes[0].childNodes[0]
+      $(".byPopur").change(function(){
+       bm_val = parseInt($(this).val(),10)
+      })
+     $(subB).click(function(e){
+         subByPopur()
+     })
+   }
+   if(checkFNum > 10){
+        clearInterval(checkForm)
+   }
+},1000)
+}
+
+function subByPopur(){ let checkSNum = 0; let checkSorm = setInterval(function(){ checkSNum = checkSNum + 1; if(!$("[role='presentation']") || !$("[role='presentation']").length >0){ clearInterval(checkSorm) sessionStorage.setItem("hisUrl",document.URL.replace(/%+\s*\d+users%E5%85%A5%E3%82%8A/ig,"")) let urlParm = document.URL.split("/"); //console.log(urlParm,bm_Rang[bm_val]) urlParm[1] = "//" urlParm[2] = urlParm[2] + "/" urlParm[3] = urlParm[3] + "/" urlParm[4]= urlParm[4].replace(/%+\s*\d+users%E5%85%A5%E3%82%8A/ig,"") console.log(urlParm[4]) if(bm_val != 7){ urlParm[4] = urlParm[4] + bm_Rang[bm_val] + "/" }else{ urlParm[4] = urlParm[4] +"/" } location.href = urlParm.join("")
+
+   }
+   if(checkSNum > 10){
+        clearInterval(checkSorm)
+   }
+},1000)
+}
+
+(function() { let checkNum = 0; let charge = { header:false, popur:false, term:false, word:false, list:false }
+
+let checkPopular = setInterval(function () {
+    checkNum = checkNum + 1;
+    if($("aside ul li a") && $("aside ul li a").length >0 && !charge.popur){
+        $("aside").next().remove()
+        $("aside ul").next().remove()
+        $("aside button").remove()
+
+       $("section aside ul li a").click(function(e){
+           e.preventDefault();
+           window.open($(this).attr('href'))
+       })
+
+       charge.popur = true
+
+    }
+
+      if($("section ul li a") && $("section ul li a").length >0 && !charge.list){
+
+
+       $("section ul li a").click(function(e){
+           e.preventDefault();
+           window.open($(this).attr('href'))
+       })
+
+       charge.list = true
+
+    }
+
+     if($('header div div:nth-child(1) div ul li') &&  $('header div div:nth-child(1) div ul li').length >0 &&!charge.header){
+        let headerBar = $('header div')[9];
+        let bar = $(headerBar).find('ul li')[1]
+        appendPUID($(bar))
+        charge.header = true;
+     }
+
+     if($("input[name='word']") &&  $("input[name='word']").length >0 &&!charge.word){
+
+        let wordVal = $("input[name='word']").val().replace(/\s*\d+users入り/ig,"")
+        $("input[name='word']").val(wordVal)
+         $("input[name='word']").focus(function(){
+            setTimeout(function(){
+              let vD= $("input[name='word']").val().replace(/\s*\d+users入り/ig,"")
+              $("input[name='word']").val(vD)
+            })
+
+         })
+
+           $("input[name='word']").blur(function(){
+            setTimeout(function(){
+              let vD= $("input[name='word']").val().replace(/\s*\d+users入り/ig,"")
+              $("input[name='word']").val(vD)
+            })
+
+         })
+
+         $("input[name='word']").keydown(function (event) {
+             console.log(event.keyCode )
+            if (event.keyCode == 13) {
+                reLoad()
+            }
+         });
+
+         $("input[name='word']").next().click(function(){
+           let vD= $("input[name='word']").val().replace(/\s*\d+users入り/ig,"")
+           $("input[name='word']").val(vD)
+
+            reLoad()
+         })
+
+         charge.word = true;
+      }
+
+      if($("header").next().children() && $("header").next().children().length >2&&!charge.term){
+        if($("header").next().children().length == 4){
+        let spanText = $("header").next().children()[0].childNodes[0].childNodes[0].childNodes[0].childNodes
+
+        for(let i = 0;i<spanText.length;i++){
+        spanText[i].innerHTML = spanText[i].innerHTML.replace(/\s*\d+users入り/ig,"")
+        }
+
+        let term = $("header").next().children()[3].childNodes[0].childNodes[0]
+         $(term).click(function(){
+          appendSearch()
+        })
+
+        }else{
+        let spanText = $("header").next().children()[1].childNodes[1].childNodes[0].childNodes[0].childNodes
+        for(let i = 0;i<spanText.length;i++){
+        spanText[i].innerHTML = spanText[i].innerHTML.replace(/\s*\d+users入り/ig,"")
+        }
+
+        let term = $("header").next().children()[4].childNodes[0].childNodes[0]
+         $(term).click(function(){
+          appendSearch()
+        })
+
+        }
+     
+
+        charge.term = true;
+      }
+
+    if(checkNum > 30 ||(charge.term && charge.popur && charge.header && charge.word && charge.list)){
+        clearInterval(checkPopular)
+    }
+},1000)
+
+window.onload = function(){
+if(sessionStorage.getItem("hisUrl") && sessionStorage.getItem("hisUrl") != ""){
+  window.history.pushState({status: 0} ,'' ,sessionStorage.getItem("hisUrl"))
+}
+} })();
